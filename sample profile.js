@@ -25,6 +25,11 @@ function printAccumulate() {
 setInterval(printAccumulate, 1000 * 10); // every 10 seconds
 
 module.exports = {
+   STRIP_COMMENTS: /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg,
+   copyFunctionSignature: function(fn) {
+      var fnText = fn.toString().replace(this.STRIP_COMMENTS, '');
+      return fnText.substring(0, fnText.indexOf("{"));
+   },
    start: function(name, filename, args) {
       var _p = {name: name, filename: filename, cb: null};
 
@@ -32,10 +37,11 @@ module.exports = {
          // callback mode
          var self = this;
          var originalcb = args[args.length - 1];
-         var override = function cb() { // how to create function signature similar to the old function, let's parse the arguments and generate one using eval?
-            self.endcb(_p);
-            return originalcb.apply(this, arguments);
-         }
+         eval("var override = " + this.copyFunctionSignature(originalcb) + "{self.endcb(_p);return originalcb.apply(this, arguments);}");
+         //var override = function cb() { // how to create function signature similar to the old function, let's parse the arguments and generate one using eval?
+         //   self.endcb(_p);
+         //   return originalcb.apply(this, arguments);
+         //}
          _p.cb = override;
          override._def = originalcb; // very important for DynamicHttpLayer
       }
