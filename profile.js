@@ -27,7 +27,7 @@ module.exports = {
    },
    start: function(name, filename, args) {
       // new node
-      var _p = {name: name, filename: filename, cb: null, subms: 0, cbms: 0};
+      var _p = {name: name, filename: filename, cb: null, ms: 0, subms: 0, cbms: 0};
 
       if (args.length > 0 && typeof(args[args.length - 1]) == "function") {
          // has callback, lets track that
