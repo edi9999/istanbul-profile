@@ -32,7 +32,7 @@ function printAccumulate() {
          obj.accumulate[k].subms,
          obj.accumulate[k].subms/obj.accumulate[k].calls,
          obj.accumulate[k].cbms,
-         obj.accumulate[k].cbms/obj.accumulate[k].cbcalls,
+         obj.accumulate[k].cbcalls ? obj.accumulate[k].cbms/obj.accumulate[k].cbcalls : 0,
          '\r\n'].join(','));
    }
 }
