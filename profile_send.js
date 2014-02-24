@@ -56,7 +56,7 @@ module.exports = obj = {
       this.dirty = true;
    },
    callback_done: function(filename, functionName, ms, subms, cbms) {
-      console.log(functionName.yellow + "()" + "(callback)".red, "(" + (cbms + ms), "total".grey + ")", "(" + cbms, "cbms".grey + ")", ("(" + ms).blue, "ms".grey + ")", ("(" + subms).blue, "subms".grey + ")");
+      console.log(functionName.yellow + "()" + "(callback)".red, "(" + cbms, "total".grey + ")", "(" + cbms, "cbms".grey + ")", ("(" + ms).blue, "ms".grey + ")", ("(" + subms).blue, "subms".grey + ")");
    },
    getLevel: function(level) {
       var x = "";
