@@ -15,7 +15,7 @@ var profile_dir = "/lib-profile";
 
 // ms: total time it takes (stack based)
 // subms: total time it takes for sub functions (stack based)
-// cbms: total time it took for it's callback to be called (if it has one) (only callback time, add to it ms if you want total)
+// cbms: total time it took for it's callback to be called including function itself (ms) (if it has)
 
 if (profile_send) profile_send.setAccumulate(accumulate);
 
@@ -84,7 +84,7 @@ module.exports = {
    endcb: function(_p) {
       var diff = process.hrtime(_p.time);
       var ms = (diff[0] * 1000) + (diff[1] / 1e6);
-      _p.cbms = ms - _p.ms;
+      _p.cbms = ms; //cbms is the total (including ms, so u know)
 
       var accu = this.getAccumulate(_p);
 
