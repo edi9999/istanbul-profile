@@ -50,16 +50,33 @@ module.exports = {
       if (poped !== _p)
          throw new Error("invalid stack");
 
-      if (stack.length > 0) {
-         var parent = stack[stack.length - 1];
-         parent.subms += ms;
-      }
+      var parent = null;
+      if (stack.length > 0)
+         parent = stack[stack.length - 1];
+
+      // link parent, important
+      //_p.parent = parent;
 
       var accu = this.getAccumulate(_p);
 
       accu.calls++;
       accu.ms += _p.ms;
       accu.subms += _p.subms;
+
+      if (stack.length > 0) {
+         var parent = stack[stack.length - 1];
+         parent.subms += ms;
+         var parentAccu = this.getAccumulate(parent);
+         var found = false;
+         for (var i = 0; i < parentAccu.children.length; i++) {
+            if (parentAccu.children[i] == accu.id) {
+               found = true;
+               break;
+            }
+         }
+         if (!found)
+            parentAccu.children.push(accu.id);
+      }
 
       if (profile_send) profile_send.accumulate_changed();
       if (profile_send) profile_send.stack_done(stack.length, _p.filename, _p.name, _p.ms, _p.subms);
@@ -77,11 +94,12 @@ module.exports = {
       if (profile_send) profile_send.accumulate_changed();
       if (profile_send) profile_send.callback_done(_p.filename, _p.name, _p.ms, _p.subms, _p.cbms);
    },
+   accumulateID: 0,
    getAccumulate: function(_p) {
       var key = this.getFilename(_p.filename) + ":" + _p.name;
       // new accumulate node
       if (!accumulate[key])
-         accumulate[key] = {filename: _p.filename, name:_p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0};
+         accumulate[key] = {id: this.accumulateID++, filename: _p.filename, name: _p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0, children: []};
       return accumulate[key];
    },
    getFilename: function(filename) {

@@ -1,101 +1,66 @@
 /**
- * Created by Ralph Varjabedian on 2/19/14.
+ * Created by Ralph Varjabedian on 2/24/14.
  */
 
-var profile_send = null;
-try {
-   profile_send = require('./profile_send');
-}
-catch (err) {
-}
+var colors = require('colors');
+var fs = require('fs');
 
-var accumulate = {};
-var stack = [];
-var profile_dir = "/lib-profile";
+setInterval(printAccumulate, 1000 * 10); // every 10 seconds
 
-// ms: total time it takes (stack based)
-// subms: total time it takes for sub functions (stack based)
-// cbms: total time it took for it's callback to be called (if it has one) (only callback time, add to it ms if you want total)
+function printAccumulate() {
+   if (!obj.accumulate || !obj.dirty)
+      return;
 
-if (profile_send) profile_send.setAccumulate(accumulate);
+   obj.dirty = false;
+   //json
+   //{filename: _p.filename, name:_p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0}
+   fs.writeFileSync("profile_output_total.js", "var data = " + JSON.stringify(obj.accumulate, null, 3));
 
-module.exports = {
-   STRIP_COMMENTS: /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg,
-   copyFunctionSignature: function(fn) {
-      var fnText = fn.toString().replace(this.STRIP_COMMENTS, '');
-      return fnText.substring(0, fnText.indexOf("{"));
-   },
-   start: function(name, filename, args) {
-      // new node
-      var _p = {name: name, filename: filename, cb: null, subms: 0, cbms: 0};
-
-      if (args.length > 0 && typeof(args[args.length - 1]) == "function") {
-         // has callback, lets track that
-         var self = this;
-         var originalcb = args[args.length - 1];
-         eval("var override = " + this.copyFunctionSignature(originalcb) + "{self.endcb(_p);return originalcb.apply(this, arguments);}");
-         _p.cb = override;
-      }
-      if (profile_send) profile_send.stack_start(stack.length, _p.filename, _p.name, _p.cb != null);
-      stack.push(_p);
-      _p.time = process.hrtime();
-      return _p;
-   },
-   end: function(_p) {
-      var diff = process.hrtime(_p.time);
-      var ms = (diff[0] * 1000) + (diff[1] / 1e6);
-      _p.ms = ms; // only the time it took from try/finally, makes sense only if we have callback, but if we have nested functions then what?
-
-      var poped = stack.pop();
-      if (poped !== _p)
-         throw new Error("invalid stack");
-
-      var accu = this.getAccumulate(_p);
-
-      accu.calls++;
-      accu.ms += _p.ms;
-      accu.subms += _p.subms;
-
-      if (stack.length > 0) {
-         var parent = stack[stack.length - 1];
-         parent.subms += ms;
-         var parentAccu = this.getAccumulate(parent);
-         var found = false;
-         for (var i = 0; i < parentAccu.children.length; i++) {
-            if (parentAccu.children[i] == accu.id) {
-               found = true;
-               break;
-            }
-         }
-         if (!found)
-            parentAccu.children.push(accu.id);
-      }
-
-      if (profile_send) profile_send.accumulate_changed();
-      if (profile_send) profile_send.stack_done(stack.length, _p.filename, _p.name, _p.ms, _p.subms);
-   },
-   endcb: function(_p) {
-      var diff = process.hrtime(_p.time);
-      var ms = (diff[0] * 1000) + (diff[1] / 1e6);
-      _p.cbms = ms - _p.ms;
-
-      var accu = this.getAccumulate(_p);
-
-      accu.cbcalls++;
-      accu.cbms += _p.cbms;
-
-      if (profile_send) profile_send.accumulate_changed();
-      if (profile_send) profile_send.callback_done(_p.filename, _p.name, _p.ms, _p.subms, _p.cbms);
-   },
-   accumulateID: 0,
-   getAccumulate: function(_p) {
-      var key = this.getFilename(_p.filename) + ":" + _p.name;
-      // new accumulate node
-      if (!accumulate[key])
-         accumulate[key] = {id:this.accumulateID++, filename: _p.filename, name:_p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0, children:[]};
-      return accumulate[key];
-   },
-   getFilename: function(filename) {
-      return filename.substring(__dirname.length + profile_dir.length);
+   //csv
+   fs.writeFileSync("profile_output_total.csv", ['filename', 'name', 'calls',
+      'ms', 'ms-avg',
+      'subms', 'subms-avg',
+      'cbcalls',
+      'cbms', 'cbms-avg',
+      '\r\n'].join(','));
+   for (var k in obj.accumulate) {
+      fs.appendFileSync("profile_output_total.csv", [
+         obj.accumulate[k].filename,
+         obj.accumulate[k].name,
+         obj.accumulate[k].calls,
+         obj.accumulate[k].ms,
+         obj.accumulate[k].ms / obj.accumulate[k].calls,
+         obj.accumulate[k].subms,
+         obj.accumulate[k].subms / obj.accumulate[k].calls,
+         obj.accumulate[k].cbcalls,
+         obj.accumulate[k].cbms,
+         obj.accumulate[k].cbcalls ? obj.accumulate[k].cbms / obj.accumulate[k].cbcalls : 0,
+         '\r\n'].join(','));
    }
-};
+
+   console.log(" [ Accumulated profiling data saved ] ");
+}
+
+module.exports = obj = {
+   dirty: false,
+   setAccumulate: function(accumulate) {
+      this.accumulate = accumulate;
+   },
+   stack_start: function(level, filename, functionName, hasCallback) {
+      console.log(this.getLevel(level), functionName.yellow + "()" + " {".green);
+   },
+   stack_done: function(level, filename, functionName, ms, subms) {
+      console.log(this.getLevel(level), "}".green, ("" + ms), "ms".grey, ("" + subms).blue, "subms".grey);
+   },
+   accumulate_changed: function() {
+      this.dirty = true;
+   },
+   callback_done: function(filename, functionName, ms, subms, cbms) {
+      console.log(functionName.yellow + "()" + "(callback)".red, "(" + (cbms + ms), "total".grey + ")", "(" + cbms, "cbms".grey + ")", ("(" + ms).blue, "ms".grey + ")", ("(" + subms).blue, "subms".grey + ")");
+   },
+   getLevel: function(level) {
+      var x = "";
+      for (var i = 0; i < level; i++) x += "   ";
+      return x;
+   }
+}
