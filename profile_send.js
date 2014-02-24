@@ -3,26 +3,41 @@
  */
 
 var colors = require('colors');
+var fs = require('fs');
 
-//setInterval(printAccumulate, 1000 * 10); // every 10 seconds
+setInterval(printAccumulate, 1000 * 10); // every 10 seconds
 
-//function printAccumulate() {
-//   //json
-//   fs.writeFileSync("profile_output_total.js", "var data = " + JSON.stringify(accumulate, null, 3));
-//   //csv
-//   fs.writeFileSync("profile_output_total.csv", ['name', 'calls', 'total', 'average', '\r\n'].join(','));
-//   for (var k in accumulate) {
-//      fs.appendFileSync("profile_output_total.csv", [
-//         '"' + k + '"',
-//         accumulate[k].calls,
-//         accumulate[k].total,
-//         accumulate[k].total/accumulate[k].calls,
-//         '\r\n'].join(','));
-//   }
-//}
+function printAccumulate() {
+   if (!obj.accumulate)
+      return;
 
+   //json
+   //{filename: _p.filename, name:_p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0}
+   fs.writeFileSync("profile_output_total.js", "var data = " + JSON.stringify(obj.accumulate, null, 3));
 
-module.exports = {
+   //csv
+   fs.writeFileSync("profile_output_total.csv", ['filename','name', 'calls',
+      'ms', 'ms-avg',
+      'subms', 'subms-avg',
+      'cbcalls',
+      'cbms', 'cbms-avg',
+      '\r\n'].join(','));
+   for (var k in obj.accumulate) {
+      fs.appendFileSync("profile_output_total.csv", [
+         obj.accumulate[k].filename,
+         obj.accumulate[k].name,
+         obj.accumulate[k].calls,
+         obj.accumulate[k].ms,
+         obj.accumulate[k].ms/obj.accumulate[k].calls,
+         obj.accumulate[k].subms,
+         obj.accumulate[k].subms/obj.accumulate[k].calls,
+         obj.accumulate[k].cbms,
+         obj.accumulate[k].cbms/obj.accumulate[k].cbcalls,
+         '\r\n'].join(','));
+   }
+}
+
+module.exports = obj = {
    setAccumulate: function(accumulate) {
       this.accumulate = accumulate;
    },
