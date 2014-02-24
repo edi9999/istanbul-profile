@@ -8,9 +8,10 @@ var fs = require('fs');
 setInterval(printAccumulate, 1000 * 10); // every 10 seconds
 
 function printAccumulate() {
-   if (!obj.accumulate)
+   if (!obj.accumulate || !obj.dirty)
       return;
 
+   obj.dirty = false;
    //json
    //{filename: _p.filename, name:_p.name, calls: 0, ms: 0, subms: 0, cbcalls: 0, cbms: 0}
    fs.writeFileSync("profile_output_total.js", "var data = " + JSON.stringify(obj.accumulate, null, 3));
@@ -36,9 +37,12 @@ function printAccumulate() {
          obj.accumulate[k].cbcalls ? obj.accumulate[k].cbms/obj.accumulate[k].cbcalls : 0,
          '\r\n'].join(','));
    }
+
+   console.log(" [ Accumulated profiling data saved ] ");
 }
 
 module.exports = obj = {
+   dirty : false,
    setAccumulate: function(accumulate) {
       this.accumulate = accumulate;
    },
@@ -49,7 +53,7 @@ module.exports = obj = {
       console.log(this.getLevel(level), "}".green, ("" + ms), "ms".grey, ("" + subms).blue, "subms".grey);
    },
    accumulate_changed: function() {
-
+      this.dirty = true;
    },
    callback_done: function(filename, functionName, ms, subms, cbms) {
       console.log(functionName.yellow + "()" + "(callback)".red, "(" + (cbms + ms), "total".grey + ")", "(" + cbms, "cbms".grey + ")", ("(" + ms).blue, "ms".grey + ")", ("(" + subms).blue, "subms".grey + ")");
