@@ -36,11 +36,4 @@ module.exports = {
             test.done();
         });
     },
-    "should provide configuration help": function (test) {
-        helper.runCommand('help', [ 'config' ], function (results) {
-            test.ok(results.succeeded());
-            test.ok(results.grepError(/Configuring istanbul/));
-            test.done();
-        });
-    }
 };
